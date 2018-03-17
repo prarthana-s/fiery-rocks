@@ -10,52 +10,50 @@ var renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
-var geometry, particleCount, particleSizes, particleSizeCount, size, materials = [], particles;
+var geometry, particleCount, particleSizes, particleSizeCount, size, materials = [], particles, dt = 0.01;
 
 var displacement = new Array();
 
-geometry = new THREE.Geometry();
-
-
 // Generate particles
+particleCount = 500; 
 
-particleCount = 50; 
+particlesGeometry = new THREE.Geometry();
 
 for (i = 0; i < particleCount; i++) {
 
-    var vertex = new THREE.Vector3();
-    vertex.x = Math.random() * 1600 - 800;
-    vertex.y = Math.random() * 600 - 300;
-    vertex.z = -500;
+    var particleVertex = new THREE.Vector3();
+    particleVertex.x = Math.random() * 1600 - 800;
+    particleVertex.y = Math.random() * 600 - 300;
+    particleVertex.z = -500;
 
-    geometry.vertices.push(vertex);
+    particlesGeometry.vertices.push(particleVertex);
 }
+particlesGeometry.verticesNeedUpdate = true;
 
-material = new THREE.PointsMaterial({
+particlesMaterial = new THREE.PointsMaterial({
     size: 5
 });
 
-particles = new THREE.Points(geometry, material);
+particles = new THREE.Points(particlesGeometry, particlesMaterial);
 
 scene.add(particles);
 
 
-
 // Generate static attractor at origin
 
-var geometryAttractor = new THREE.Geometry();
-var vertexAttractor = new THREE.Vector3();
+var attractorGeometry = new THREE.Geometry();
+var attractorVertex = new THREE.Vector3();
 
-vertexAttractor.x = 0;
-vertexAttractor.y = 0;
-vertexAttractor.z = -500;
+attractorVertex.x = 0;
+attractorVertex.y = 0;
+attractorVertex.z = -500;
 
 var sizeAttractor = 20;
 
-geometryAttractor.vertices.push(vertexAttractor);
+attractorGeometry.vertices.push(attractorVertex);
 
-var materialAttractor = new THREE.PointsMaterial( { color: 0xFFFFFF, size: sizeAttractor } );
-var attractor = new THREE.Points( geometryAttractor, materialAttractor );
+var attractorMaterial = new THREE.PointsMaterial( { color: 0xFFFFFF, size: sizeAttractor } );
+var attractor = new THREE.Points( attractorGeometry, attractorMaterial );
 scene.add( attractor );
 
 camera.position.z = 5;
@@ -68,14 +66,19 @@ function animate() {
 }
 
 function calculateDisplacement() {
+    displacement = [];
     for (let i = 0; i < particles.geometry.vertices.length; i++) {
-        var res = new THREE.Vector3();
-        res.subVectors(vertexAttractor,particles.geometry.vertices[i]);
+        let res = new THREE.Vector3();
+        res.subVectors(attractorVertex,particles.geometry.vertices[i]);
         displacement.push(res);
+        displacement[i].divideScalar(1/dt);
+        particles.geometry.vertices[i].add(displacement[i]);   
     }
+    particles.geometry.verticesNeedUpdate = true;
 }
 
 function render() {
     calculateDisplacement();
+    console.log(particles.geometry.vertices);
     renderer.render(scene, camera);
 }
