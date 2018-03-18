@@ -1,8 +1,14 @@
 var scene = new THREE.Scene();
+
+height = window.innerHeight;
+width = window.innerWidth;
+windowHalfX = width / 2;
+windowHalfY = height / 2;
+
 var fieldOfView = 75;
 var nearPlane = 0.1;
 var farPlane = 1000;
-var aspectRatio = window.innerWidth/window.innerHeight;
+var aspectRatio = width/height;
 
 var camera = new THREE.PerspectiveCamera( fieldOfView, aspectRatio, nearPlane, farPlane );
 
@@ -10,12 +16,14 @@ var renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
+document.addEventListener('mousemove', onMouseMove, false);
+
 var geometry, particleCount, particleSizes, particleSizeCount, size, materials = [], particles, dt = 0.01;
 
 var displacement = new Array();
 
 // Generate particles
-particleCount = 500; 
+particleCount = 50; 
 
 particlesGeometry = new THREE.Geometry();
 
@@ -52,6 +60,8 @@ var sizeAttractor = 20;
 
 attractorGeometry.vertices.push(attractorVertex);
 
+attractorGeometry.verticesNeedUpdate = true;
+
 var attractorMaterial = new THREE.PointsMaterial( { color: 0xFFFFFF, size: sizeAttractor } );
 var attractor = new THREE.Points( attractorGeometry, attractorMaterial );
 scene.add( attractor );
@@ -69,7 +79,7 @@ function calculateDisplacement() {
     displacement = [];
     for (let i = 0; i < particles.geometry.vertices.length; i++) {
         let res = new THREE.Vector3();
-        res.subVectors(attractorVertex,particles.geometry.vertices[i]);
+        res.subVectors(attractor.geometry.vertices[0],particles.geometry.vertices[i]);
         displacement.push(res);
         displacement[i].divideScalar(1/dt);
         particles.geometry.vertices[i].add(displacement[i]);   
@@ -77,8 +87,16 @@ function calculateDisplacement() {
     particles.geometry.verticesNeedUpdate = true;
 }
 
+
 function render() {
     calculateDisplacement();
-    console.log(particles.geometry.vertices);
     renderer.render(scene, camera);
+}
+
+function onMouseMove(e) {
+    mouseX = e.clientX - windowHalfX;
+    mouseY = windowHalfY - e.clientY;
+    attractor.geometry.vertices[0].x = mouseX;
+    attractor.geometry.vertices[0].y = mouseY;
+    attractor.geometry.verticesNeedUpdate = true;
 }
