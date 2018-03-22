@@ -18,46 +18,34 @@ document.body.appendChild( renderer.domElement );
 
 document.addEventListener('mousemove', onMouseMove, false);
 
-var geometry, particleCount, particleSizes, particleSizeCount, size, materials = [], particles, dt = 0.01;
+var geometry, particleCount, particleSizes, particleSizeCount, size, materials = [], particles, dt = 0.1, k = 0.1;
 
-var displacement = new Array();
+var pObjArr = new Array();
 
-generateParticles(500);
+function particleObj() {
+    var pObj = {};
 
-// Generate particles
-function generateParticles(particleCount) {
-    var count = particleCount;
-    var pt;
-    var delta;
-    var color;
-    var radius = Math.sqrt(width*width + height*height) / 2;
-    var r, theta;
-    var speedCoef;
+    pObj.position = this;
+    pObj.mass = 1;
 
-    particlesGeometry = new THREE.Geometry();
+    pObj.force = new THREE.Vector3();
+    pObj.force.x = 0;
+    pObj.force.y = 0;
 
-    for (var i = 0 ; i < count; i++ ) {
-        r = radius * Math.sqrt(Math.random());
-        theta = Math.random() * 6.28319;
+    pObj.acceleration = new THREE.Vector3();
+    pObj.acceleration.x = 0;
+    pObj.acceleration.y = 0;
 
-        var particleVertex = new THREE.Vector3();
-        particleVertex.x = r*Math.cos(theta);
-        particleVertex.y = r*Math.sin(theta);
-        particleVertex.z = -500;
+    pObj.velocity = new THREE.Vector3();
+    pObj.velocity.x = 0;
+    pObj.velocity.y = 0;
 
-        particlesGeometry.vertices.push(particleVertex);   
-    }
+    pObj.displacement = new THREE.Vector3();
+    pObj.displacement.x = 0;
+    pObj.displacement.y = 0;
 
-    particlesGeometry.verticesNeedUpdate = true;
-
-    particlesMaterial = new THREE.PointsMaterial({
-        size: 5
-    });
-
-    particles = new THREE.Points(particlesGeometry, particlesMaterial);
-
-    scene.add(particles);
-}
+    return pObj;
+};
 
 // Generate static attractor at origin
 var attractorGeometry = new THREE.Geometry();
@@ -77,6 +65,50 @@ var attractorMaterial = new THREE.PointsMaterial( { color: 0xFFFFFF, size: sizeA
 var attractor = new THREE.Points( attractorGeometry, attractorMaterial );
 scene.add( attractor );
 
+generateParticles(100);
+
+// Generate particles
+function generateParticles(particleCount) {
+    var count = particleCount;
+    // var pt;
+    // var delta;
+    // var color;
+    var radius = Math.sqrt(width*width + height*height) / 2;
+    var r, theta;
+    var speedCoef;
+
+    particlesGeometry = new THREE.Geometry();
+
+    for (var i = 0 ; i < count; i++ ) {
+        r = radius * Math.sqrt(Math.random());
+
+        // 360 degrees = 6.28319 radians
+        theta = Math.random() * 6.28319;
+
+        var particleVertex = new THREE.Vector3();
+        particleVertex.x = r*Math.cos(theta);
+        particleVertex.y = r*Math.sin(theta);
+        particleVertex.z = -500;
+
+        particlesGeometry.vertices.push(particleVertex);   
+
+        // Constructor
+        var pObj = particleObj.apply(particleVertex);
+        pObjArr.push(pObj);
+    }
+
+    particlesGeometry.verticesNeedUpdate = true;
+
+    particlesMaterial = new THREE.PointsMaterial({
+        size: 5
+    });
+
+    particles = new THREE.Points(particlesGeometry, particlesMaterial);
+
+    scene.add(particles);
+}
+
+
 camera.position.z = 5;
 
 animate();
@@ -86,14 +118,41 @@ function animate() {
     render();
 }
 
+// function calculateDisplacement() {
+//     displacement = [];
+//     for (let i = 0; i < particles.geometry.vertices.length; i++) {
+//         let res = new THREE.Vector3();
+//         res.subVectors(attractor.geometry.vertices[0],particles.geometry.vertices[i]);
+//         displacement.push(res);
+//         displacement[i].divideScalar(1/dt);  
+//         particles.geometry.vertices[i].add(displacement[i]);  
+//     }
+//     particles.geometry.verticesNeedUpdate = true;
+// }
+
 function calculateDisplacement() {
-    displacement = [];
-    for (let i = 0; i < particles.geometry.vertices.length; i++) {
-        let res = new THREE.Vector3();
-        res.subVectors(attractor.geometry.vertices[0],particles.geometry.vertices[i]);
-        displacement.push(res);
-        displacement[i].divideScalar(1/dt);  
-        particles.geometry.vertices[i].add(displacement[i]);  
+    for (let i = 0; i < pObjArr.length; i++) {
+
+        var pObj = pObjArr[i];
+
+        pObj.displacement.subVectors(pObj.position,attractor.geometry.vertices[0]);
+
+        pObj.force = pObj.displacement.multiplyScalar(-k);
+
+        pObj.acceleration = pObj.force.divideScalar(pObj.mass);
+        
+        var dv = new THREE.Vector3();
+
+        dv = pObj.acceleration.multiplyScalar(dt);
+
+        pObj.velocity.add(dv);
+
+        var copyOfVelocity = pObj.velocity;
+        copyOfVelocity.multiplyScalar(dt);
+        pObj.displacement = copyOfVelocity;
+
+        pObj.position.add(pObj.displacement);
+
     }
     particles.geometry.verticesNeedUpdate = true;
 }
