@@ -22,33 +22,44 @@ var geometry, particleCount, particleSizes, particleSizeCount, size, materials =
 
 var displacement = new Array();
 
+generateParticles(500);
+
 // Generate particles
-particleCount = 50; 
+function generateParticles(particleCount) {
+    var count = particleCount;
+    var pt;
+    var delta;
+    var color;
+    var radius = Math.sqrt(width*width + height*height) / 2;
+    var r, theta;
+    var speedCoef;
 
-particlesGeometry = new THREE.Geometry();
+    particlesGeometry = new THREE.Geometry();
 
-for (i = 0; i < particleCount; i++) {
+    for (var i = 0 ; i < count; i++ ) {
+        r = radius * Math.sqrt(Math.random());
+        theta = Math.random() * 6.28319;
 
-    var particleVertex = new THREE.Vector3();
-    particleVertex.x = Math.random() * 1600 - 800;
-    particleVertex.y = Math.random() * 600 - 300;
-    particleVertex.z = -500;
+        var particleVertex = new THREE.Vector3();
+        particleVertex.x = r*Math.cos(theta);
+        particleVertex.y = r*Math.sin(theta);
+        particleVertex.z = -500;
 
-    particlesGeometry.vertices.push(particleVertex);
+        particlesGeometry.vertices.push(particleVertex);   
+    }
+
+    particlesGeometry.verticesNeedUpdate = true;
+
+    particlesMaterial = new THREE.PointsMaterial({
+        size: 5
+    });
+
+    particles = new THREE.Points(particlesGeometry, particlesMaterial);
+
+    scene.add(particles);
 }
-particlesGeometry.verticesNeedUpdate = true;
-
-particlesMaterial = new THREE.PointsMaterial({
-    size: 5
-});
-
-particles = new THREE.Points(particlesGeometry, particlesMaterial);
-
-scene.add(particles);
-
 
 // Generate static attractor at origin
-
 var attractorGeometry = new THREE.Geometry();
 var attractorVertex = new THREE.Vector3();
 
@@ -81,12 +92,11 @@ function calculateDisplacement() {
         let res = new THREE.Vector3();
         res.subVectors(attractor.geometry.vertices[0],particles.geometry.vertices[i]);
         displacement.push(res);
-        displacement[i].divideScalar(1/dt);
-        particles.geometry.vertices[i].add(displacement[i]);   
+        displacement[i].divideScalar(1/dt);  
+        particles.geometry.vertices[i].add(displacement[i]);  
     }
     particles.geometry.verticesNeedUpdate = true;
 }
-
 
 function render() {
     calculateDisplacement();
