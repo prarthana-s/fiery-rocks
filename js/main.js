@@ -118,18 +118,6 @@ function animate() {
     render();
 }
 
-// function calculateDisplacement() {
-//     displacement = [];
-//     for (let i = 0; i < particles.geometry.vertices.length; i++) {
-//         let res = new THREE.Vector3();
-//         res.subVectors(attractor.geometry.vertices[0],particles.geometry.vertices[i]);
-//         displacement.push(res);
-//         displacement[i].divideScalar(1/dt);  
-//         particles.geometry.vertices[i].add(displacement[i]);  
-//     }
-//     particles.geometry.verticesNeedUpdate = true;
-// }
-
 function calculateDisplacement() {
     for (let i = 0; i < pObjArr.length; i++) {
 
