@@ -18,9 +18,11 @@ document.body.appendChild( renderer.domElement );
 
 document.addEventListener('mousemove', onMouseMove, false);
 
-var geometry, particleCount, particleSizes, particleSizeCount, size, materials = [], particles, dt = 0.1, k = 0.1;
+var geometry, particleCount = 500, particleSizes, particleSizeCount, size, materials = [], particles, dt = 0.05, k = 0.1;
 
 var pObjArr = new Array();
+
+var spring;
 
 function particleObj() {
     var pObj = {};
@@ -65,14 +67,11 @@ var attractorMaterial = new THREE.PointsMaterial( { color: 0xFFFFFF, size: sizeA
 var attractor = new THREE.Points( attractorGeometry, attractorMaterial );
 scene.add( attractor );
 
-generateParticles(100);
+generateParticles(particleCount);
 
 // Generate particles
 function generateParticles(particleCount) {
     var count = particleCount;
-    // var pt;
-    // var delta;
-    // var color;
     var radius = Math.sqrt(width*width + height*height) / 2;
     var r, theta;
     var speedCoef;
@@ -84,9 +83,10 @@ function generateParticles(particleCount) {
 
         // 360 degrees = 6.28319 radians
         theta = Math.random() * 6.28319;
-
+        theta2 = Math.random() * 6.28319;
+        
         var particleVertex = new THREE.Vector3();
-        particleVertex.x = r*Math.cos(theta);
+        particleVertex.x = r*Math.cos(theta2);
         particleVertex.y = r*Math.sin(theta);
         particleVertex.z = -500;
 
@@ -119,13 +119,20 @@ function animate() {
 }
 
 function calculateDisplacement() {
+    // spring = [];
     for (let i = 0; i < pObjArr.length; i++) {
 
         var pObj = pObjArr[i];
 
-        pObj.displacement.subVectors(pObj.position,attractor.geometry.vertices[0]);
+        pObj.displacement.subVectors(attractor.geometry.vertices[0],pObj.position);
 
-        pObj.force = pObj.displacement.multiplyScalar(-k);
+
+        var distance = pObj.position.distanceTo(attractor.geometry.vertices[0]);
+
+        let a = 1000;
+
+        // force = displacement * e^(-r^2)
+        pObj.force = pObj.displacement.multiplyScalar(a * Math.pow(Math.E, -0.02 * Math.pow(distance,0.9))); 
 
         pObj.acceleration = pObj.force.divideScalar(pObj.mass);
         
@@ -136,8 +143,10 @@ function calculateDisplacement() {
         pObj.velocity.add(dv);
 
         var copyOfVelocity = pObj.velocity;
-        copyOfVelocity.multiplyScalar(dt);
-        pObj.displacement = copyOfVelocity;
+        pObj.displacement = copyOfVelocity.multiplyScalar(dt);
+
+        pObj.displacement.x *= Math.random();
+        pObj.displacement.y *= Math.random();
 
         pObj.position.add(pObj.displacement);
 
