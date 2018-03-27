@@ -18,11 +18,32 @@ document.body.appendChild( renderer.domElement );
 
 document.addEventListener('mousemove', onMouseMove, false);
 
-var geometry, particleCount = 500, particleSizes, particleSizeCount, size, materials = [], particles, dt = 0.05, k = 0.1;
-
+var geometry, particleCount = 2000, attractorCount = 5, particleSizes, particleSizeCount, size, materials = [], particles, dt = 0.05, k = 0.02;
+var particlesGeometry;
+var particlesMaterial;
+var attractor;
 var pObjArr = new Array();
 
 var spring;
+
+parameters = [
+    [
+        [1, 1, 0.5], 5
+    ],
+    [
+        [0.95, 1, 0.5], 4
+    ],
+    [
+        [0.90, 1, 0.5], 3
+    ],
+    [
+        [0.85, 1, 0.5], 2
+    ],
+    [
+        [0.80, 1, 0.5], 1
+    ]
+];
+parameterCount = parameters.length;
 
 function particleObj() {
     var pObj = {};
@@ -50,23 +71,46 @@ function particleObj() {
 };
 
 // Generate static attractor at origin
-var attractorGeometry = new THREE.Geometry();
-var attractorVertex = new THREE.Vector3();
+// var attractorGeometry = new THREE.Geometry();
+// var attractorVertex = new THREE.Vector3();
 
-attractorVertex.x = 0;
-attractorVertex.y = 0;
-attractorVertex.z = -500;
+// attractorVertex.x = 0;
+// attractorVertex.y = 0;
+// attractorVertex.z = -500;
 
-var sizeAttractor = 20;
+// var sizeAttractor = 20;
 
-attractorGeometry.vertices.push(attractorVertex);
+// attractorGeometry.vertices.push(attractorVertex);
 
-attractorGeometry.verticesNeedUpdate = true;
+// attractorGeometry.verticesNeedUpdate = true;
 
-var attractorMaterial = new THREE.PointsMaterial( { color: 0xFFFFFF, size: sizeAttractor } );
-var attractor = new THREE.Points( attractorGeometry, attractorMaterial );
-scene.add( attractor );
+// var attractorMaterial = new THREE.PointsMaterial( { color: 0xFFFFFF, size: sizeAttractor } );
+// var attractor = new THREE.Points( attractorGeometry, attractorMaterial );
+// scene.add( attractor );
 
+// Generate particles
+function generateAttractor(attractorCount) {
+    var attractorGeometry = new THREE.Geometry();
+    for (let i = 0 ; i < attractorCount ; i++) {
+        // Generate static attractor at origin
+        var attractorVertex = new THREE.Vector3();
+    
+        attractorVertex.x = (Math.random() - 0.5) * width;
+        attractorVertex.y = (Math.random() - 0.5) * height;
+        attractorVertex.z = -500;
+    
+        attractorGeometry.vertices.push(attractorVertex);
+    }
+    
+    attractorGeometry.verticesNeedUpdate = true;
+    var sizeAttractor = 20;
+    
+    var attractorMaterial = new THREE.PointsMaterial( { color: 0xFFFFFF, size: sizeAttractor } );
+    attractor = new THREE.Points( attractorGeometry, attractorMaterial );
+    scene.add( attractor );
+}
+
+generateAttractor(attractorCount); 
 generateParticles(particleCount);
 
 // Generate particles
@@ -100,7 +144,7 @@ function generateParticles(particleCount) {
     particlesGeometry.verticesNeedUpdate = true;
 
     particlesMaterial = new THREE.PointsMaterial({
-        size: 5
+        size: 5,
     });
 
     particles = new THREE.Points(particlesGeometry, particlesMaterial);
@@ -114,7 +158,7 @@ camera.position.z = 5;
 animate();
 
 function animate() {
-    requestAnimationFrame(animate);
+    requestAnimationFrame(animate);        
     render();
 }
 
@@ -124,15 +168,24 @@ function calculateDisplacement() {
 
         var pObj = pObjArr[i];
 
-        pObj.displacement.subVectors(attractor.geometry.vertices[0],pObj.position);
+        var maxAttractorIndex = 0;
+        var minDistance = Infinity;
+        var distance;
 
+        for (var k = 0 ; k < attractorCount; k++) {
+            distance = pObj.position.distanceTo(attractor.geometry.vertices[k]);
+            if (distance < minDistance) {
+                maxAttractorIndex = k;
+                minDistance = distance;
+            }
+        }
 
-        var distance = pObj.position.distanceTo(attractor.geometry.vertices[0]);
+        pObj.displacement.subVectors(attractor.geometry.vertices[maxAttractorIndex],pObj.position);
 
-        let a = 1000;
+        let a = 2000;
 
         // force = displacement * e^(-r^2)
-        pObj.force = pObj.displacement.multiplyScalar(a * Math.pow(Math.E, -0.02 * Math.pow(distance,0.9))); 
+        pObj.force = pObj.displacement.multiplyScalar(a * Math.pow(Math.E, -0.05 * Math.pow(minDistance,0.9))); 
 
         pObj.acceleration = pObj.force.divideScalar(pObj.mass);
         
@@ -145,17 +198,27 @@ function calculateDisplacement() {
         var copyOfVelocity = pObj.velocity;
         pObj.displacement = copyOfVelocity.multiplyScalar(dt);
 
-        pObj.displacement.x *= Math.random();
-        pObj.displacement.y *= Math.random();
+        pObj.displacement.x *= (Math.random());
+        pObj.displacement.y *= (Math.random());
 
         pObj.position.add(pObj.displacement);
-
     }
     particles.geometry.verticesNeedUpdate = true;
 }
 
+
+
 function render() {
     calculateDisplacement();
+    
+    var time = Date.now() * 0.00005;
+    for (i = 0 ; i < parameterCount; i++) {
+
+        color = parameters[i][0];
+        
+        h = (360 * (color[0] + time) % 360) / 360;
+        particlesMaterial.color.setHSL(h, color[1], color[2]);
+    }
     renderer.render(scene, camera);
 }
 
