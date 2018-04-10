@@ -17,41 +17,20 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
 document.addEventListener('mousemove', onMouseMove, false);
+window.addEventListener( 'resize', onWindowResize, false );
 
-var geometry, particleCount = 5000, attractorCount = 3, particleSizes, particleSizeCount, size, materials = [], particles, dt = 0.05, k = 0.02;
-var particlesGeometry;
-var particlesMaterial;
 var attractor;
-var color, sprite, size;
+var particleCount = 1000, attractorCount = 3, dt = 0.05, k = 0.02, massMultipler = 10;
+var particlesGeometry = new Array();
+var particlesMaterial = new Array();
+var particles = new Array();
 var pObjArr = new Array();
 
-var spring;
-
-
-// Parameters for colors and size
-// parameters = [
-//     [
-//         [1, 1, 0.5], 5
-//     ],
-//     [
-//         [0.95, 1, 0.5], 4
-//     ],
-//     [
-//         [0.90, 1, 0.5], 3
-//     ],
-//     [
-//         [0.85, 1, 0.5], 2
-//     ],
-//     [
-//         [0.80, 1, 0.5], 1
-//     ]
-// ];
-
-function particleObj() {
+function particleObj(paramIndex) {
     var pObj = {};
     
     pObj.position = this;
-    pObj.mass = Math.random() * 10;
+    pObj.mass = Math.random() * masses[paramIndex];
 
     pObj.force = new THREE.Vector3();
     pObj.force.x = 0;
@@ -95,13 +74,6 @@ function generateAttractor(attractorCount) {
 }
 
 var textureLoader = new THREE.TextureLoader();
-// var sprite1 = textureLoader.load( "textures/sprites/snowflake1.png" );
-// var sprite2 = textureLoader.load( "textures/sprites/snowflake2.png" );
-// var sprite3 = textureLoader.load( "textures/sprites/snowflake3.png" );
-// var sprite4 = textureLoader.load( "textures/sprites/snowflake4.png" );
-// var sprite5 = textureLoader.load( "textures/sprites/snowflake5.png" );
-
-// var fireSprite = textureLoader.load( "textures/sprites/fire-sprite.png" );
 
 var spriteArr = [
     textureLoader.load( "textures/sprites/flame_sprite1.png" ),
@@ -112,29 +84,23 @@ var spriteArr = [
     textureLoader.load( "textures/sprites/flame_sprite6.png" )
 ];
 
-var spriteIndex = 0;
+var spriteIndex = [0,1,2,3,4,5,6];
 
-
-parameters = [
-    [ [1.0, 0.2, 0.5], 20 ],
-    [ [0.95, 0.1, 0.5], 15 ],
-    [ [0.90, 0.05, 0.5], 10 ],
-    [ [0.85, 0, 0.5], 8 ],
-    [ [0.80, 0, 0.5], 5 ]
-];    
-parameterCount = parameters.length;
+var sizesArr = [ 200, 100, 65, 30, 20 ] ;   
+var numParticles = [50, 100, 2000, 1500, 2000];
+var masses = [ 30, 20, 15, 10, 5];
+var sizesArrCount = sizesArr.length;
 
 // Generate particles
-function generateParticlesNew(particleCount) {
+function generateParticlesNew(particleCount, paramIndex) {
     var count = particleCount;
     var radius = Math.sqrt(width*width + height*height) / 2;
     var r, theta;
     var speedCoef;
 
-    particlesGeometry = new THREE.Geometry();
+    particlesGeometry[paramIndex] = new THREE.Geometry();
 
-
-    for (var i = 0 ; i < count; i++ ) {
+    for (var i = 0 ; i < numParticles[paramIndex]; i++ ) {
         r = radius * Math.sqrt(Math.random());
 
         // 360 degrees = 6.28319 radians
@@ -146,68 +112,33 @@ function generateParticlesNew(particleCount) {
         particleVertex.y = r*Math.sin(theta);
         particleVertex.z = -500;
 
-        particlesGeometry.vertices.push(particleVertex);   
+        particlesGeometry[paramIndex].vertices.push(particleVertex);   
 
         // Constructor
-        var pObj = particleObj.apply(particleVertex);
+        var pObj = particleObj.apply(particleVertex,[paramIndex]);
         pObjArr.push(pObj);
     }
 
-    particlesGeometry.verticesNeedUpdate = true;
+    particlesGeometry[paramIndex].verticesNeedUpdate = true;
 
-    particlesMaterial = new THREE.PointsMaterial({
-        size: 80,
-        map: spriteArr[0], 
+    particlesMaterial[paramIndex] = new THREE.PointsMaterial({
+        size: sizesArr[paramIndex],
+        map: spriteArr[paramIndex], 
         blending: THREE.AdditiveBlending, 
         depthTest: false, 
         transparent : true
     });
 
-    particles = new THREE.Points(particlesGeometry, particlesMaterial);
+    particles[paramIndex] = new THREE.Points(particlesGeometry[paramIndex], particlesMaterial[paramIndex]);
 
-    scene.add(particles);
+    scene.add(particles[paramIndex]);
 }
 
-// // Generate particles
-// function generateParticles(particleCount) {
-//     var count = particleCount;
-//     var radius = Math.sqrt(width*width + height*height) / 2;
-//     var r, theta;
-//     var speedCoef;
-
-//     for (var i = 0 ; i < count; i++ ) {
-//         r = radius * Math.sqrt(Math.random());
-
-//         // 360 degrees = 6.28319 radians
-//         theta = Math.random() * 6.28319;
-//         theta2 = Math.random() * 6.28319;
-        
-//         var particleVertex = new THREE.Vector3();
-//         particleVertex.x = r*Math.cos(theta2);
-//         particleVertex.y = r*Math.sin(theta);
-//         particleVertex.z = -500;
-
-//         particlesGeometry.vertices.push(particleVertex);   
-
-//         // Constructor
-//         var pObj = particleObj.apply(particleVertex);
-//         pObjArr.push(pObj);
-//     }
-
-//     particlesGeometry.verticesNeedUpdate = true;
-
-//     particlesMaterial = new THREE.PointsMaterial({
-//         size: 3,
-//     });
-
-//     particles = new THREE.Points(particlesGeometry, particlesMaterial);
-
-//     scene.add(particles);
-// }
-
 generateAttractor(attractorCount); 
-generateParticlesNew(particleCount);
 
+for (let i = 0 ; i < sizesArrCount; i++) {
+    generateParticlesNew(particleCount,i);
+}
 
 camera.position.z = 0;
 
@@ -238,10 +169,12 @@ function calculateDisplacement() {
 
         pObj.displacement.subVectors(attractor.geometry.vertices[maxAttractorIndex],pObj.position);
 
-        let a = 1000;
-
         // force = displacement * e^(-r^2)
-        pObj.force = pObj.displacement.multiplyScalar(a * Math.pow(Math.E, -0.05 * Math.pow(minDistance,0.9))); 
+        let a = 1000;
+        let r = 0.05;
+        let powerR = 0.8;
+
+        pObj.force = pObj.displacement.multiplyScalar(a * Math.pow(Math.E, -r * Math.pow(minDistance,powerR))); 
 
         pObj.acceleration = pObj.force.divideScalar(pObj.mass);
         
@@ -259,27 +192,20 @@ function calculateDisplacement() {
 
         pObj.position.add(pObj.displacement);
     }
-    particles.geometry.verticesNeedUpdate = true;
+    for (let z = 0 ; z < sizesArrCount ; z++) {
+        particles[z].geometry.verticesNeedUpdate = true;
+    }
 }
-
-var cycle = 5;
-console.log(particlesMaterial.map);
 
 function render() {
     calculateDisplacement();
-    
-    // Cycle through colours
-    // var time = Date.now() * 0.00005;
-    // for (i = 0 ; i < parameterCount; i++) {
-        
-    //     color = parameters[i][0];
-        
-    //     h = (360 * (color[0] + time) % 360) / 360;
-    //     particlesMaterial.color.setHSL(h, color[1], color[2]);
-    //     // console.log(particlesMaterial);
-    // }
-    spriteIndex = (spriteIndex+1) % 6;
-    particlesMaterial.map = spriteArr[spriteIndex];
+
+    for (let i = 0 ; i < sizesArrCount; i++) {
+        spriteIndex[i] = (spriteIndex[i]+1) % 6;
+        let index = spriteIndex[i];
+        particlesMaterial[i].map = spriteArr[index];
+    }
+
     renderer.render(scene, camera);
 }
 
@@ -291,4 +217,12 @@ function onMouseMove(e) {
     attractor.geometry.vertices[0].x = mouseX;
     attractor.geometry.vertices[0].y = mouseY;
     attractor.geometry.verticesNeedUpdate = true;
+}
+
+function onWindowResize() {
+    windowHalfX = window.innerWidth / 2;
+    windowHalfY = window.innerHeight / 2;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize( window.innerWidth, window.innerHeight );
 }
